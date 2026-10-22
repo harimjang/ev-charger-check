@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>충전기 QR 간편 점검</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --ink:#1b2430; --muted:#6b7684; --line:#e3e8ee;
+  --brand:#1f4e79; --brand-soft:#e8f0f8;
+  --ok:#1d6f3c; --ok-soft:#e7f4ec; --warn:#b3261e; --warn-soft:#fdecea;
+  --accent:#f9c200;
+  --fs:22px;            /* ← 글자 크기 조절: 이 값만 바꾸면 전체가 함께 커지고 작아집니다 */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); line-height:1.5;
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",
+              "Malgun Gothic",sans-serif;
+  font-size:var(--fs); padding:0 0 48px;
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+/* 헤더 */
+.hero{background:var(--brand);color:#fff;padding:18px 14px 20px;margin-bottom:14px}
+.hero h1{margin:0 0 10px;font-size:1.3em;font-weight:700;letter-spacing:-.3px}
+.hero p{margin:0;font-size:.86em;color:#dce7f2}
+.hero b{color:#fff}
+.hero .highlight{
+  display:block;margin-top:9px;padding:9px 11px;border-radius:9px;
+  background:rgba(255,255,255,.12);font-size:.82em
+}
+.precheck{
+  display:flex;align-items:center;gap:11px;
+  margin:12px 14px 16px;padding:11px 13px;border-radius:10px;
+  background:#fffbe6;border:1px solid #f3e3a0;font-size:.82em;color:#6b5600
+}
+.precheck b{color:#4a3c00}
+.navi-ico{flex:0 0 auto;width:2.5em;height:2.5em;border-radius:.56em;
+  box-shadow:0 1px 3px rgba(0,0,0,.18)}
+
+/* 연락처 */
+.contact{margin:4px 14px 10px;padding:15px 13px;border-radius:12px;text-align:center;
+  background:var(--brand-soft);border:1px solid #cfe0ef}
+.contact .t{font-size:.78em;color:var(--brand);font-weight:700;margin-bottom:9px}
+.contact a{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  padding:11px 20px;border-radius:999px;background:var(--brand);color:#fff;
+  font-size:1.0em;font-weight:800;letter-spacing:.4px}
+
+/* 카드 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+      padding:16px 15px;margin-bottom:12px}
+.card.err{border-color:#f3c7c3}
+.step-no{display:inline-block;background:var(--brand-soft);color:var(--brand);
+  font-size:.62em;font-weight:700;padding:4px 11px;border-radius:999px;margin-bottom:9px}
+.q{font-size:1.02em;font-weight:700;margin:0 0 4px;letter-spacing:-.3px}
+.hint{font-size:.78em;color:var(--muted);margin:0 0 12px}
+
+label.fld{display:block;font-size:.92em;font-weight:700;margin:0 0 5px}
+input[type=text],textarea,select{
+  width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:10px;
+  font-size:.95em;font-family:inherit;background:#fff;color:var(--ink)
+}
+input[type=text]:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,78,121,.12)}
+textarea{min-height:68px;resize:vertical}
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%236b7684' stroke-width='2' fill='none'/></svg>");
+  background-repeat:no-repeat;background-position:right 14px center}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+
+/* 파일 */
+.file-btn{
+  display:flex;align-items:center;gap:9px;padding:13px;border:1.5px dashed #c6d0db;
+  border-radius:11px;background:#fbfcfd;color:var(--brand);font-weight:700;font-size:.9em;
+  cursor:pointer;justify-content:center}
+.file-btn.has{border-style:solid;border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+input[type=file]{display:none}
+.thumb{margin-top:9px;display:none}
+.thumb img{width:100%;max-height:190px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.thumb .meta{display:flex;justify-content:space-between;align-items:center;
+  font-size:.72em;color:var(--muted);margin-top:5px}
+.thumb button{background:none;border:none;color:var(--warn);font-size:.76em;
+  font-weight:700;padding:3px 0;cursor:pointer}
+
+/* GIF */
+.gif{margin:0 0 13px;border-radius:11px;overflow:hidden;border:1px solid var(--line);background:#eef1f4}
+.gif img{display:block;width:100%}
+
+/* 라디오 */
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{display:flex;align-items:center;gap:11px;padding:14px 13px;border:1.5px solid var(--line);
+  border-radius:11px;cursor:pointer;background:#fff;transition:.12s}
+.opt input{appearance:none;width:21px;height:21px;border:2px solid #c3ccd6;border-radius:50%;
+  margin:0;flex:0 0 auto;position:relative}
+.opt .txt{font-size:.95em;font-weight:600;letter-spacing:-.2px}
+.opt.ok.sel{border-color:var(--ok);background:var(--ok-soft)}
+.opt.ok.sel input{border-color:var(--ok);background:var(--ok)}
+.opt.ng.sel{border-color:var(--warn);background:var(--warn-soft)}
+.opt.ng.sel input{border-color:var(--warn);background:var(--warn)}
+.opt.sel input::after{content:'';position:absolute;left:5px;top:5px;width:7px;height:7px;
+  border-radius:50%;background:#fff}
+.opt.ok.sel .txt{color:var(--ok)}
+.opt.ng.sel .txt{color:var(--warn)}
+
+/* 아코디언 */
+.acc{display:none;margin-top:12px;padding:13px;border-radius:11px;
+  background:var(--warn-soft);border:1px solid #f3c7c3}
+.acc.open{display:block}
+.acc .t{font-size:.8em;font-weight:700;color:var(--warn);margin:0 0 10px}
+
+/* 제출 */
+.submit-wrap{margin-top:16px}
+button.primary{
+  width:100%;padding:16px;border:none;border-radius:12px;background:var(--brand);
+  color:#fff;font-size:1.02em;font-weight:700;font-family:inherit;cursor:pointer}
+button.primary:disabled{background:#9fb3c6;cursor:default}
+button.ghost{
+  width:100%;padding:14px;border:1.5px solid var(--brand);border-radius:12px;background:#fff;
+  color:var(--brand);font-size:.95em;font-weight:700;font-family:inherit;cursor:pointer}
+.toast{
+  position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(18px);
+  width:calc(100% - 28px); max-width:532px; z-index:60;
+  background:#b3261e; color:#fff; padding:15px 17px; border-radius:13px;
+  font-size:.84em; font-weight:600; line-height:1.45;
+  box-shadow:0 8px 26px rgba(0,0,0,.22);
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+  display:flex; align-items:flex-start; gap:9px;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+.toast .ic{flex:0 0 auto; font-size:1.05em; line-height:1.3}
+
+/* 완료 */
+#done{display:none;text-align:center;padding:30px 16px}
+#done .ico{width:74px;height:74px;border-radius:50%;background:var(--ok-soft);color:var(--ok);
+  display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 16px}
+#done h2{margin:0 0 7px;font-size:1.25em}
+#done p{margin:0 0 22px;color:var(--muted);font-size:.86em}
+#done .btns{display:flex;flex-direction:column;gap:9px}
+#done .note{margin-top:18px;font-size:.78em;color:var(--muted)}
+.req{color:var(--warn);font-size:.72em;margin-left:3px}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.45);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;
+  vertical-align:-2px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 첫 로딩 / 연결 오류 */
+.boot{position:fixed;inset:0;z-index:60;background:var(--bg);padding:0 26px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;text-align:center}
+.boot.hide{display:none}
+.boot .ring{width:36px;height:36px;border:3px solid #d8e0e8;border-top-color:var(--brand);
+  border-radius:50%;animation:sp .8s linear infinite}
+.boot p{font-size:.8em;color:var(--muted);line-height:1.6;white-space:pre-line}
+.boot button{padding:12px 24px;border:none;border-radius:10px;background:var(--brand);
+  color:#fff;font-size:.86em;font-weight:700;cursor:pointer}
+.invalid{border-color:var(--warn)!important;box-shadow:0 0 0 3px rgba(179,38,30,.1)!important}
+.card.skip{opacity:.5;pointer-events:none;position:relative}
+.card.skip .opts,.card.skip .gif,.card.skip .acc{display:none}
+.skip-note{display:none;margin-top:10px;padding:11px 13px;border-radius:10px;
+  background:#f2f5f8;border:1px solid var(--line);font-size:.8em;color:var(--muted)}
+.card.skip .skip-note{display:block}
+</style>
+</head>
+<body>
+
+<div class="boot" id="boot">
+  <div class="ring" id="bootSpin"></div>
+  <p id="bootMsg">점검 화면을 준비하고 있습니다…</p>
+  <button id="bootRetry" style="display:none">다시 시도</button>
+</div>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>충전기 QR 간편 점검</h1>
+    <p>소장님, 카카오내비 앱으로 충전기가 잘 준비되는지만 확인하는 <b>3분 테스트</b>입니다.</p>
+    <span class="highlight">💡 <b>차량에 선을 꽂지 않으므로 테스트용 차가 필요 없습니다.</b></span>
+  </div>
+</div>
+
+<div class="wrap" id="precheckWrap">
+  <div class="precheck"><svg class="navi-ico" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="23" fill="#FAE100"/><path d="M50 20 L74 35 L74 65 L50 80 L26 65 L26 35 Z" fill="#0D76ED"/><path d="M42 66 L42 46 L57 46" fill="none" stroke="#FAE100" stroke-width="9" stroke-linecap="butt"/><path d="M53 36 L69 46 L53 56 Z" fill="#FAE100"/></svg><span><b>시작 전 확인</b> · 스마트폰에 <b>카카오내비 앱</b> 설치 및 <b>결제수단</b> 등록 완료</span></div>
+</div>
+
+<div class="wrap" id="formArea">
+
+  <!-- 0. 기본 정보 -->
+  <div class="card" id="base">
+    <span class="step-no">기본 정보</span>
+
+    <div class="field">
+      <label class="fld" for="lotSelect">주차장명<span class="req">*</span></label>
+      <p class="hint">목록에서 고르시거나, 아래 칸에 직접 적어 주세요. 둘 다 입력하셔도 됩니다.</p>
+      <select id="lotSelect">
+        <option value="">— 목록에서 선택 —</option>
+      </select>
+      <input type="text" id="lotText" placeholder="직접 입력 (예: ○○빌딩 지하주차장)"
+             autocomplete="off" style="margin-top:8px">
+      <p class="hint" id="locHint" style="margin:8px 0 0;display:none"></p>
+    </div>
+
+    <div class="field">
+      <label class="fld" for="chargerNo">점검 대상 충전기 번호<span class="req">*</span></label>
+      <p class="hint">아래 목록에서 선택하시거나 직접 입력하세요.<br>
+        번호는 충전기 화면에 표시되어 있거나 스티커로 붙어 있습니다.</p>
+      <select id="externalId" disabled>
+        <option value="">— 주차장을 먼저 선택해 주세요 —</option>
+      </select>
+      <input type="text" id="chargerNo" placeholder="직접 입력 (예: 1147051000007-01)"
+             inputmode="text" autocomplete="off" style="margin-top:8px">
+    </div>
+
+    <div class="field">
+      <label class="fld">충전기 전면 사진<span class="req">*</span></label>
+      <p class="hint">충전기 번호와 화면이 모두 보이게 1장 찍어주세요.</p>
+      <div class="gif-slot" data-gif="front" data-alt="전면 사진 예시"></div>
+      <label class="file-btn" id="frontBtn" for="frontPhoto">📷 사진 촬영 / 선택</label>
+      <input type="file" id="frontPhoto" accept="image/*">
+      <div class="thumb" id="frontThumb"></div>
+    </div>
+  </div>
+
+  <!-- 1단계 -->
+  <div class="card" id="step1">
+    <span class="step-no">1단계</span>
+    <p class="q">충전기에 QR 스티커가 붙어 있거나, 화면에 QR 코드가 떠 있나요?</p>
+    <p class="hint">스티커가 없어도 충전기 화면의 ‘QR충전 · QR결제 · QR인증’ 버튼을 누르면 QR이 나오는 경우가 있습니다.</p>
+    <div class="gif-slot" data-gif="step1" data-alt="QR 노출 예시"></div>
+    <div class="opts">
+      <label class="opt ok" data-step="1" data-val="정상"><input type="radio" name="s1"><span class="txt">정상 확인됨</span></label>
+      <label class="opt ng" data-step="1" data-val="오류"><input type="radio" name="s1"><span class="txt">QR 없음 / 훼손됨</span></label>
+    </div>
+    <div class="acc" id="acc1">
+      <p class="t">사진 또는 메모 중 <u>하나 이상</u>은 꼭 남겨 주세요</p>
+      <div class="field">
+        <label class="file-btn" id="s1Btn" for="s1Photo">📷 훼손 부위 사진 촬영 / 선택</label>
+        <input type="file" id="s1Photo" accept="image/*">
+        <div class="thumb" id="s1Thumb"></div>
+      </div>
+      <div class="field"><textarea id="s1Memo" placeholder="한 줄 메모 (예: 스티커가 찢어져 있음)"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 2단계 -->
+  <div class="card" id="step2">
+    <span class="step-no">2단계 · 스마트폰 화면</span>
+    <p class="q">카메라로 QR을 찍고 카카오내비에서 <b>[충전하기]</b>를 눌렀을 때, <b>‘커넥터를 연결해주세요’</b>까지 넘어가나요?</p>
+    <p class="hint">카메라 → QR 스캔 → ‘카카오내비’ 선택 → ‘렌터카 등 차량번호 없이 입력’ → ‘충전하기’</p>
+    <div class="gif-slot" data-gif="step2" data-alt="앱 동작 예시"></div>
+    <div class="opts">
+      <label class="opt ok" data-step="2" data-val="정상"><input type="radio" name="s2"><span class="txt">정상 넘어감</span></label>
+      <label class="opt ng" data-step="2" data-val="오류"><input type="radio" name="s2"><span class="txt">오류 발생 (인증 실패, 무한 로딩, 에러 팝업 등)</span></label>
+    </div>
+    <div class="acc" id="acc2">
+      <p class="t">사진 또는 메모 중 <u>하나 이상</u>은 꼭 남겨 주세요</p>
+      <div class="field">
+        <label class="file-btn" id="s2Btn" for="s2Photo">📷 오류 화면 캡처 / 촬영 선택</label>
+        <input type="file" id="s2Photo" accept="image/*">
+        <div class="thumb" id="s2Thumb"></div>
+      </div>
+      <div class="field"><textarea id="s2Memo" placeholder="오류 내용 (예: QR 스캔은 되는데 인증중에서 멈춤)"></textarea></div>
+    </div>
+    <p class="skip-note">1단계에서 QR을 확인할 수 없어 <b>이 단계는 진행하지 않습니다.</b></p>
+  </div>
+
+  <!-- 3단계 -->
+  <div class="card" id="step3">
+    <span class="step-no">3단계 · 충전기 기계</span>
+    <p class="q">앱에서 정상으로 넘어간 후, <b>충전기 기계 자체</b>의 화면이 바뀌거나 LED 색상이 바뀌며 준비 상태가 되나요?</p>
+    <p class="hint">화면이 있는 충전기는 ‘커넥터를 연결해주세요’ 문구가, 화면이 없는 충전기는 LED 색상이 바뀝니다.</p>
+    <div class="gif-slot" data-gif="step3" data-alt="충전기 준비 상태 예시"></div>
+    <div class="opts">
+      <label class="opt ok" data-step="3" data-val="정상"><input type="radio" name="s3"><span class="txt">정상 준비됨</span></label>
+      <label class="opt ng" data-step="3" data-val="오류"><input type="radio" name="s3"><span class="txt">기계 반응 없음 / 에러 (화면 멈춤, 빨간 불 등)</span></label>
+    </div>
+    <div class="acc" id="acc3">
+      <p class="t">사진 또는 메모 중 <u>하나 이상</u>은 꼭 남겨 주세요</p>
+      <div class="field">
+        <label class="file-btn" id="s3Btn" for="s3Photo">📷 충전기 화면 촬영 / 선택</label>
+        <input type="file" id="s3Photo" accept="image/*">
+        <div class="thumb" id="s3Thumb"></div>
+      </div>
+      <div class="field"><textarea id="s3Memo" placeholder="기계 상태 (예: 화면이 멈춰 있고 빨간 불이 켜짐)"></textarea></div>
+    </div>
+    <p class="skip-note">1단계에서 QR을 확인할 수 없어 <b>이 단계는 진행하지 않습니다.</b></p>
+  </div>
+
+  <div class="submit-wrap" id="submit-area">
+    <button class="primary" id="submitBtn">점검 결과 제출하기</button>
+  </div>
+</div>
+
+<!-- 완료 -->
+<div class="wrap" id="done">
+  <div class="ico">✓</div>
+  <h2>점검 완료</h2>
+  <p>점검 결과가 정상적으로 제출되었습니다.<br>협조해 주셔서 감사합니다!</p>
+  <div class="btns">
+    <button class="ghost" id="editBtn">방금 제출한 내용 수정하기</button>
+    <button class="primary" id="newBtn">다음 충전기 점검 / 새로 작성</button>
+  </div>
+  <p class="note">💡 창을 이미 닫으셨다면 링크를 다시 열어 새로 작성해 주시면 됩니다.</p>
+</div>
+
+<div class="wrap">
+  <div class="contact">
+    <p class="t">문제 상황이 생기면 아래 번호로 연락 주세요</p>
+    <a href="tel:01082812018">📞 010-8281-2018</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ic">⚠️</span><span id="toastText"></span></div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   API 설정 — 이 두 줄만 환경에 맞게 바꾸면 됩니다.
+   TOKEN 은 Apps Script 의 CONFIG.SHARE_TOKEN 과 같아야 합니다.
+   ───────────────────────────────────────────────────────────── */
+var API_URL = 'https://script.google.com/macros/s/AKfycbzx4V4HmZRPd_9WuzK8PdNIM4v_CPpcrtU7v1Dl02ugjmvER3Sb5_bqJIWja6hr6bEo/exec';
+var TOKEN   = 'kmp-uhdbm6ighjdk2nusoc5e81i8';
+
+/* 부트스트랩으로 채워지는 값들 */
+var MAX_PX = 1280, QUALITY = 0.72, CHARGERS = [], PRESET_LOT = '';
+
+var state = { rowIndex:null, photos:{front:'',step1:'',step2:'',step3:''},
+              files:{front:null,s1:null,s2:null,s3:null} };
+
+var $ = function(id){ return document.getElementById(id); };
+
+/* ───── 라디오 ───── */
+document.querySelectorAll('.opt').forEach(function(opt){
+  opt.addEventListener('click', function(){
+    var step = opt.dataset.step, val = opt.dataset.val;
+    document.querySelectorAll('.opt[data-step="'+step+'"]').forEach(function(o){
+      o.classList.remove('sel'); o.querySelector('input').checked = false;
+    });
+    opt.classList.add('sel'); opt.querySelector('input').checked = true;
+
+    var acc = $('acc'+step), card = $('step'+step);
+    if (val === '오류') {
+      acc.classList.add('open'); card.classList.add('err');
+      if (step === '1') setSkip(true);
+      setTimeout(function(){ acc.scrollIntoView({behavior:'smooth', block:'center'}); }, 90);
+    } else {
+      acc.classList.remove('open'); card.classList.remove('err');
+      if (step === '1') setSkip(false);
+      var next = step === '3' ? $('submit-area') : $('step'+(Number(step)+1));
+      setTimeout(function(){ next.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
+    }
+  });
+});
+
+/* ───── 1단계 불량 → 2·3단계 건너뛰기 ───── */
+var SKIP = false;
+function setSkip(on){
+  SKIP = on;
+  [2,3].forEach(function(n){
+    var card = $('step'+n);
+    card.classList.toggle('skip', on);
+    if (on){
+      document.querySelectorAll('.opt[data-step="'+n+'"]').forEach(function(o){
+        o.classList.remove('sel'); o.querySelector('input').checked=false; });
+      $('acc'+n).classList.remove('open');
+      card.classList.remove('err');
+      $('s'+n+'Memo').value='';
+      state.files['s'+n]=null;
+      var btn=$('s'+n+'Btn'), th=$('s'+n+'Thumb');
+      btn.classList.remove('has'); btn.textContent=btn.dataset.label;
+      th.style.display='none'; th.innerHTML=''; $('s'+n+'Photo').value='';
+    }
+  });
+}
+
+/* ───── 주차장 선택 → 충전기 목록 연동 ───── */
+var lotSel = $('lotSelect'), lotTxt = $('lotText'), extSel = $('externalId');
+
+function lotSelected(){ return lotSel ? lotSel.value : ''; }
+function lotTyped(){ return lotTxt ? lotTxt.value.trim() : ''; }
+
+function fillChargers(lot){
+  if (!extSel) return;
+  var list = lot ? CHARGERS.filter(function(c){ return c.lot === lot; }) : [];
+  if (!list.length){
+    extSel.innerHTML = '<option value="">— ' +
+      (lot ? '이 주차장은 목록이 없습니다 · 직접 입력' : '주차장을 먼저 선택해 주세요') + ' —</option>';
+    extSel.disabled = true;
+  } else {
+    extSel.innerHTML = '<option value="">— 목록에서 선택 —</option>';
+    list.forEach(function(c){
+      var o = document.createElement('option');
+      o.value = c.ext;
+      o.textContent = c.ext + (c.speed ? ' · ' + c.speed : '');
+      o.dataset.loc = c.loc || '';
+      o.dataset.station = c.station || '';
+      extSel.appendChild(o);
+    });
+    extSel.disabled = false;
+  }
+}
+
+function showLoc(lot){
+  var hint = $('locHint'); if (!hint) return;
+  var hit = CHARGERS.filter(function(c){ return c.lot === lot && c.loc; })[0];
+  if (lot && hit){ hint.style.display='block'; hint.textContent='📍 ' + hit.loc; }
+  else { hint.style.display='none'; hint.textContent=''; }
+}
+
+if (lotSel) {
+  lotSel.addEventListener('change', function(){
+    fillChargers(lotSel.value);
+    showLoc(lotSel.value);
+  });
+}
+
+
+
+/* URL ?lot= 으로 사전 선택 */
+function applyPresetLot(){
+  if (!PRESET_LOT || !lotSel) return;
+  var hit = Array.prototype.slice.call(lotSel.options).some(function(o){ return o.value === PRESET_LOT; });
+  if (hit) { lotSel.value = PRESET_LOT; fillChargers(PRESET_LOT); showLoc(PRESET_LOT); }
+  else if (lotTxt) { lotTxt.value = PRESET_LOT; }
+}
+
+/* ───── 사진 ───── */
+function bindFile(inputId, btnId, thumbId, key){
+  var input = $(inputId);
+  input.addEventListener('change', function(){
+    var f = input.files && input.files[0];
+    if (!f) return;
+    resize(f, function(res){
+      state.files[key] = res;
+      $(btnId).classList.add('has');
+      $(btnId).textContent = '✓ 사진 첨부됨 — 다시 찍기';
+      var t = $(thumbId);
+      t.style.display = 'block';
+      t.innerHTML = '';
+      var img = document.createElement('img'); img.src = res.preview; t.appendChild(img);
+      var meta = document.createElement('div'); meta.className = 'meta';
+      meta.innerHTML = '<span>' + Math.round(res.bytes/1024) + ' KB</span>';
+      var del = document.createElement('button'); del.type='button'; del.textContent='삭제';
+      del.onclick = function(){
+        state.files[key]=null; input.value='';
+        t.style.display='none'; t.innerHTML='';
+        $(btnId).classList.remove('has');
+        $(btnId).textContent = $(btnId).dataset.label;
+      };
+      meta.appendChild(del); t.appendChild(meta);
+    });
+  });
+  $(btnId).dataset.label = $(btnId).textContent;
+}
+
+function resize(file, cb){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height, s = Math.min(1, MAX_PX/Math.max(w,h));
+      var cw = Math.round(w*s), ch = Math.round(h*s);
+      var cv = document.createElement('canvas'); cv.width=cw; cv.height=ch;
+      cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
+      var dataUrl = cv.toDataURL('image/jpeg', QUALITY);
+      var b64 = dataUrl.split(',')[1];
+      cb({ data:b64, mimeType:'image/jpeg', preview:dataUrl, bytes: Math.round(b64.length*0.75) });
+    };
+    img.onerror = function(){ alert('사진을 읽지 못했습니다. 다시 시도해 주세요.'); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+bindFile('frontPhoto','frontBtn','frontThumb','front');
+bindFile('s1Photo','s1Btn','s1Thumb','s1');
+bindFile('s2Photo','s2Btn','s2Thumb','s2');
+bindFile('s3Photo','s3Btn','s3Thumb','s3');
+
+/* ───── 검증 & 제출 ───── */
+function picked(step){
+  var el = document.querySelector('.opt[data-step="'+step+'"].sel');
+  return el ? el.dataset.val : '';
+}
+var toastTimer = null;
+function showErr(text, focusEl){
+  var t = $('toast');
+  $('toastText').textContent = text;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 4500);
+  if (focusEl){
+    focusEl.classList.add('invalid');
+    focusEl.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(function(){ focusEl.classList.remove('invalid'); }, 3000);
+  }
+}
+function clearErr(){
+  var t = $('toast'); t.classList.remove('show');
+  if (toastTimer) clearTimeout(toastTimer);
+}
+
+function validate(){
+  clearErr();
+  var lSel = lotSelected(), lTyped = lotTyped();
+  if (!lSel && !lTyped){
+    showErr('주차장명을 목록에서 고르거나 직접 입력해 주세요.', lotSel || lotTxt); return null; }
+  var no  = $('chargerNo').value.trim();
+  var ext = $('externalId') ? $('externalId').value : '';
+  if (!no && !ext){
+    showErr('충전기를 목록에서 고르거나 번호를 직접 입력해 주세요.',
+            $('externalId') && !$('externalId').disabled ? $('externalId') : $('chargerNo'));
+    return null; }
+  if (!state.files.front && !state.photos.front){
+    showErr('충전기 전면 사진을 첨부해 주세요.', $('frontBtn')); return null; }
+  if (!picked('1')){ showErr('1단계 결과를 선택해 주세요.', $('step1')); return null; }
+  if (!SKIP){
+    for (var i=2;i<=3;i++){
+      if (!picked(String(i))){ showErr(i+'단계 결과를 선택해 주세요.', $('step'+i)); return null; }
+    }
+  }
+  // 오류로 고른 단계는 사진 또는 메모 중 하나 이상 필요
+  var steps = SKIP ? [1] : [1,2,3];
+  for (var k=0;k<steps.length;k++){
+    var n = steps[k];
+    if (picked(String(n)) !== '오류') continue;
+    var hasPhoto = !!state.files['s'+n] || !!state.photos['step'+n];
+    var hasMemo  = !!$('s'+n+'Memo').value.trim();
+    if (!hasPhoto && !hasMemo){
+      showErr(n+'단계가 오류입니다. 사진 또는 메모 중 하나는 남겨 주세요.', $('acc'+n));
+      return null;
+    }
+  }
+  var o = $('externalId');
+  var optStation = '';
+  if (o && o.selectedIndex > 0) optStation = o.options[o.selectedIndex].dataset.station || '';
+  return {
+    chargerNo  : no,
+    lotSelected: lSel,
+    lotTyped   : lTyped,
+    externalId : o ? o.value : '',
+    station    : optStation,
+    frontPhoto: state.files.front,
+    step1: picked('1'), step1Photo: picked('1')==='오류'?state.files.s1:null, step1Memo: $('s1Memo').value.trim(),
+    step2: SKIP ? '해당없음' : picked('2'),
+    step2Photo: (!SKIP && picked('2')==='오류') ? state.files.s2 : null,
+    step2Memo : SKIP ? '' : $('s2Memo').value.trim(),
+    step3: SKIP ? '해당없음' : picked('3'),
+    step3Photo: (!SKIP && picked('3')==='오류') ? state.files.s3 : null,
+    step3Memo : SKIP ? '' : $('s3Memo').value.trim()
+  };
+}
+
+var busy = false;
+$('submitBtn').addEventListener('click', function(){
+  if (busy) return;
+  var data = validate();
+  if (!data) return;
+
+  busy = true;
+  var btn = $('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>저장 중입니다...';
+
+  var ok = function(res){
+    busy = false;
+    btn.disabled = false; btn.textContent = '점검 결과 제출하기';
+    state.rowIndex = res.rowIndex;
+    state.photos   = res.photos;
+    state.files    = {front:null,s1:null,s2:null,s3:null};
+    $('formArea').style.display = 'none';
+    $('precheckWrap').style.display = 'none';
+    $('done').style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+  var fail = function(err){
+    busy = false;
+    btn.disabled = false; btn.textContent = '점검 결과 제출하기';
+    showErr('저장에 실패했습니다. 잠시 후 다시 눌러 주세요. (' + (err && err.message ? err.message : err) + ')');
+  };
+
+  var req = state.rowIndex
+    ? apiPost('update', { data: data, rowIndex: state.rowIndex })
+    : apiPost('save',   { data: data });
+  req.then(ok).catch(fail);
+});
+
+/* ───── 수정 / 새로 작성 ───── */
+$('editBtn').addEventListener('click', function(){
+  $('done').style.display='none';
+  $('precheckWrap').style.display='block';
+  $('formArea').style.display='block';
+  $('submitBtn').textContent = '수정 내용 제출하기';
+  clearErr();
+  ['front','s1','s2','s3'].forEach(function(k){
+    var map = {front:['frontBtn','frontThumb'], s1:['s1Btn','s1Thumb'],
+               s2:['s2Btn','s2Thumb'], s3:['s3Btn','s3Thumb']};
+    var urlMap = {front:state.photos.front, s1:state.photos.step1,
+                  s2:state.photos.step2, s3:state.photos.step3};
+    if (urlMap[k]){
+      var b=$(map[k][0]); b.classList.add('has');
+      b.textContent='✓ 기존 사진 유지 — 바꾸려면 다시 찍기';
+    }
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+$('newBtn').addEventListener('click', function(){
+  state = { rowIndex:null, photos:{front:'',step1:'',step2:'',step3:''},
+            files:{front:null,s1:null,s2:null,s3:null} };
+  $('chargerNo').value='';
+  if (lotSel){ lotSel.selectedIndex=0; } if (lotTxt){ lotTxt.value=''; }
+  setSkip(false);
+  if (extSel){ fillChargers(''); } showLoc('');
+  ['s1Memo','s2Memo','s3Memo'].forEach(function(id){ $(id).value=''; });
+  document.querySelectorAll('.opt').forEach(function(o){
+    o.classList.remove('sel'); o.querySelector('input').checked=false; });
+  document.querySelectorAll('.acc').forEach(function(a){ a.classList.remove('open'); });
+  document.querySelectorAll('.card').forEach(function(c){ c.classList.remove('err'); });
+  [['frontPhoto','frontBtn','frontThumb'],['s1Photo','s1Btn','s1Thumb'],
+   ['s2Photo','s2Btn','s2Thumb'],['s3Photo','s3Btn','s3Thumb']].forEach(function(t){
+    $(t[0]).value=''; var b=$(t[1]); b.classList.remove('has'); b.textContent=b.dataset.label;
+    var th=$(t[2]); th.style.display='none'; th.innerHTML='';
+  });
+  clearErr();
+  $('submitBtn').textContent = '점검 결과 제출하기';
+  $('done').style.display='none';
+  $('precheckWrap').style.display='block';
+  $('formArea').style.display='block';
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+/* ───── 서버 통신 ─────
+   POST 는 Content-Type 을 text/plain 으로 보냅니다.
+   application/json 으로 보내면 CORS preflight(OPTIONS)가 발생하는데
+   Apps Script 는 OPTIONS 에 응답하지 않아 요청이 막힙니다.
+   credentials 는 기본값(omit/same-origin)을 유지해야 구글 쿠키가 실리지 않아
+   익명 요청으로 처리됩니다. ─ 다중 로그인 오류를 피하는 핵심입니다. */
+function apiCall(url, opts){
+  return fetch(url, opts)
+    .then(function(r){ return r.text(); })
+    .then(function(t){
+      var j;
+      try { j = JSON.parse(t); }
+      catch (e) { throw new Error('서버 응답을 읽지 못했습니다. 잠시 후 다시 시도해 주세요.'); }
+      if (!j.ok) throw new Error(j.error || '처리에 실패했습니다.');
+      return j.data;
+    });
+}
+
+function apiGet(action){
+  return apiCall(API_URL + '?action=' + encodeURIComponent(action) +
+                 '&token=' + encodeURIComponent(TOKEN), { method:'GET' });
+}
+
+function apiPost(action, payload){
+  var body = { action: action, token: TOKEN };
+  for (var k in payload){ if (payload.hasOwnProperty(k)) body[k] = payload[k]; }
+  return apiCall(API_URL, {
+    method : 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body   : JSON.stringify(body)
+  });
+}
+
+/* ───── 첫 로딩 ───── */
+function applyBootstrap(d){
+  if (d.maxPx)   MAX_PX  = d.maxPx;
+  if (d.quality) QUALITY = d.quality;
+  CHARGERS = d.chargers || [];
+
+  if (lotSel){
+    (d.lots || []).forEach(function(name){
+      var o = document.createElement('option');
+      o.value = name; o.textContent = name;
+      lotSel.appendChild(o);
+    });
+  }
+
+  var gif = d.gif || {};
+  document.querySelectorAll('.gif-slot').forEach(function(slot){
+    var url = gif[slot.getAttribute('data-gif')];
+    if (!url) return;
+    var box = document.createElement('div'); box.className = 'gif';
+    var img = document.createElement('img');
+    img.src = url; img.alt = slot.getAttribute('data-alt') || ''; img.loading = 'lazy';
+    box.appendChild(img); slot.appendChild(box);
+  });
+
+  applyPresetLot();
+}
+
+function boot(){
+  try {
+    PRESET_LOT = new URLSearchParams(location.search).get('lot') || '';
+  } catch (e) { PRESET_LOT = ''; }
+
+  $('boot').classList.remove('hide');
+  $('bootSpin').style.display = 'block';
+  $('bootMsg').textContent = '점검 화면을 준비하고 있습니다…';
+  $('bootRetry').style.display = 'none';
+
+  apiGet('bootstrap').then(function(d){
+    applyBootstrap(d);
+    $('boot').classList.add('hide');
+  }).catch(function(err){
+    $('bootSpin').style.display = 'none';
+    $('bootMsg').textContent =
+      '연결에 실패했습니다.\n' + ((err && err.message) ? err.message : err) +
+      '\n\n네트워크를 확인하신 뒤 다시 시도해 주세요.';
+    $('bootRetry').style.display = 'inline-block';
+  });
+}
+
+$('bootRetry').addEventListener('click', boot);
+boot();
+</script>
+</body>
+</html>
